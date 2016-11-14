@@ -18,12 +18,8 @@ def LSMC_american(
 
     n_paths = len(mc)
     n_T = len(mc.columns)
-    nan = pd.DataFrame(np.empty((n_paths, n_T,)))
-    nan[:] = np.nan
 
     cashflows = pd.DataFrame(0, index=mc.index, columns=mc.columns)
-
-    zero = pd.DataFrame(np.zeros_like(mc[3]))
 
     ## Discount factor
     df = np.exp(-r)
@@ -40,14 +36,13 @@ def LSMC_american(
 
         ## Is in-the-money if exercise price is positive
         ITM = (exercise > 0)
-        mask = ITM[ITM].index
-        #print(mask)
 
-        if i > 0:
+        if i == 0:
+            mask = ITM[ITM].index
+
+        else:
             ## X: stock prices at time t, only if they are in the money
             ## Y: denote the discounted cashflows discounted one step back
-            X = nan.copy(deep=True)
-            Y = nan.copy(deep=True)
             X = mc.loc[ITM, t]
             Y = cashflows.loc[X.index, t+1]*df
             p = np.polyfit(X, Y, degree)
@@ -81,11 +76,10 @@ def LSMC_american(
 
 
 
-
-
 ## ----------------------------------------------------------------------------
 if __name__ == "__main__":
 
+    
     mc = [[1.00, 1.09, 1.08, 1.34],
           [1.00, 1.16, 1.26, 1.54],
           [1.00, 1.22, 1.07, 1.03],
@@ -100,3 +94,7 @@ if __name__ == "__main__":
 
     print(cashflows)
     print(price)
+
+## Como calcular el exposure a partir de los cashflows?
+## Decision incluyendo PD a cada tiempo
+
