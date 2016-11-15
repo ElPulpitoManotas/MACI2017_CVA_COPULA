@@ -19,12 +19,14 @@ def LSMC_american(
     n_paths = len(mc)
     n_T = len(mc.columns)
 
+    positive_exposure = pd.DataFrame(0, index=mc.index, columns=mc.columns)
+    negative_exposure = pd.DataFrame(0, index=mc.index, columns=mc.columns)
     cashflows = pd.DataFrame(0, index=mc.index, columns=mc.columns)
 
     ## Discount factor
     df = np.exp(-r)
 
-    for i in xrange(n_T):
+    for i in range(n_T):
 
         t = n_T - i - 1
 
@@ -40,46 +42,61 @@ def LSMC_american(
         if i == 0:
             mask = ITM[ITM].index
 
+            positive_exposure[t] = np.maximum(exercise.copy(deep=True), 0)
+            negative_exposure[t] = np.minimum(exercise.copy(deep=True), 0)
+
         else:
-            ## X: stock prices at time t, only if they are in the money
+
+            ## X: stock prices at time t
             ## Y: denote the discounted cashflows discounted one step back
-            X = mc.loc[ITM, t]
-            Y = cashflows.loc[X.index, t+1]*df
-            p = np.polyfit(X, Y, degree)
+            X = mc[t]
+            Y = cashflows[t+1] * df
+
+            ## Use a polynomial fit
+            ## Use only paths that are in the money
+            p = np.polyfit(X.loc[ITM], Y.loc[ITM], degree)
 
             ## "The value of continuation is given by substituting X into
             ## the conditional expectation function"
-            continuation = pd.Series(np.polyval(p, X), index=X.index)
+            continuation = pd.Series(np.polyval(p, X))
+            #print(continuation)
 
-            ## Paths that are early exeercized
-            mask = (exercise.loc[ITM] > continuation)
+
+            ## Paths that are early exercized
+            mask = (exercise.loc[ITM] > continuation.loc[ITM])
             mask = mask[mask].index
+
+            ## The exposures
+            positive_exposure[t] = np.maximum(exercise, continuation)
+            negative_exposure[t] = np.minimum(exercise, continuation)
 
         ## Cashflows
         ## Override future cashflows, if it's early exercized
         cashflows.loc[mask, t] = exercise[mask]
-        for ti in xrange(t+1, n_T):
+        for ti in range(t+1, n_T):
+            positive_exposure.loc[mask, ti] = 0
+            negative_exposure.loc[mask, ti] = 0
             cashflows.loc[mask, ti] = 0
+
         #print('cashflows at t={:d}'.format(t))
         #print(cashflows)
 
     ## Calculate the price
-    discount_cashflows = cashflows.copy(deep=True)
-    for i in xrange(len(cashflows.columns)):
+    discounted_cashflows = cashflows.copy(deep=True)
+    for i in range(len(cashflows.columns)):
         ## Discount factor
         df = np.exp(-i*r)
-        discount_cashflows[i] = cashflows[i]*df
+        discounted_cashflows[i] = cashflows[i]*df
 
-    price = discount_cashflows.sum().sum() / n_paths
+    price = discounted_cashflows.sum().sum() / n_paths
 
-    return cashflows, price
+    return price, cashflows, positive_exposure, negative_exposure
 
 
 
 ## ----------------------------------------------------------------------------
 if __name__ == "__main__":
 
-    
     mc = [[1.00, 1.09, 1.08, 1.34],
           [1.00, 1.16, 1.26, 1.54],
           [1.00, 1.22, 1.07, 1.03],
@@ -90,11 +107,12 @@ if __name__ == "__main__":
           [1.00, 0.88, 1.22, 1.34]]
     mc = pd.DataFrame(mc)
 
-    cashflows, price = LSMC_american(mc)
+    price, cashflows, positive_exposure, negative_exposure = LSMC_american(mc)
 
+    #print(price)
     print(cashflows)
-    print(price)
+    print(positive_exposure)
+    #print(negative_exposure)
 
-## Como calcular el exposure a partir de los cashflows?
 ## Decision incluyendo PD a cada tiempo
 
