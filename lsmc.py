@@ -42,8 +42,8 @@ def LSMC_american(
         if i == 0:
             mask = ITM[ITM].index
 
-            positive_exposure[t] = np.maximum(exercise.copy(deep=True), 0)
-            negative_exposure[t] = np.minimum(exercise.copy(deep=True), 0)
+            positive_exposure[t] = np.maximum(exercise, 0)
+            negative_exposure[t] = np.minimum(exercise, 0)
 
         else:
 
