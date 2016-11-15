@@ -40,10 +40,10 @@ def LSMC_american(
         ITM = (exercise > 0)
 
         if i == 0:
+            ## Value of continuation is 0 at maturity
+            continuation = pd.Series(0, index=exercise.index)
+            ## Keep only in the money paths
             mask = ITM[ITM].index
-
-            positive_exposure[t] = np.maximum(exercise, 0)
-            negative_exposure[t] = np.minimum(exercise, 0)
 
         else:
 
@@ -61,22 +61,25 @@ def LSMC_american(
             continuation = pd.Series(np.polyval(p, X))
             #print(continuation)
 
-
             ## Paths that are early exercized
             mask = (exercise.loc[ITM] > continuation.loc[ITM])
             mask = mask[mask].index
 
-            ## The exposures
-            positive_exposure[t] = np.maximum(exercise, continuation)
-            negative_exposure[t] = np.minimum(exercise, continuation)
+
+        ## The exposures
+        exposure = np.maximum(exercise, continuation)
+        positive_exposure[t] = np.maximum(exposure, 0)
+        negative_exposure[t] = np.minimum(exposure, 0)
 
         ## Cashflows
         ## Override future cashflows, if it's early exercized
         cashflows.loc[mask, t] = exercise[mask]
         for ti in range(t+1, n_T):
+            cashflows.loc[mask, ti] = 0
+            ## If there is a cashflow, then the option worths zero afterwards
+            ## Therefore, no exposure
             positive_exposure.loc[mask, ti] = 0
             negative_exposure.loc[mask, ti] = 0
-            cashflows.loc[mask, ti] = 0
 
         #print('cashflows at t={:d}'.format(t))
         #print(cashflows)
@@ -109,10 +112,10 @@ if __name__ == "__main__":
 
     price, cashflows, positive_exposure, negative_exposure = LSMC_american(mc)
 
-    #print(price)
+    print(price)
     print(cashflows)
     print(positive_exposure)
-    #print(negative_exposure)
+    print(negative_exposure)
 
 ## Decision incluyendo PD a cada tiempo
 
