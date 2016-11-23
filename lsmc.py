@@ -10,7 +10,7 @@ def LSMC_american(
             r = 0.06,
             strike = 1.10,
             degree = 2,
-            option = 'put'):
+            option = 'call'):
     """
     Input: a pandas.DataFrame with the Monte Carlo simulation n_paths
     Output: the Option cash flow matrix, and the american option path
@@ -52,14 +52,19 @@ def LSMC_american(
             X = mc[t]
             Y = cashflows[t+1] * df
 
-            ## Use a polynomial fit
-            ## Use only paths that are in the money
-            p = np.polyfit(X.loc[ITM], Y.loc[ITM], degree)
+            if any(ITM):
+                ## Use a polynomial fit
+                ## Use only paths that are in the money
+                p = np.polyfit(X.loc[ITM], Y.loc[ITM], degree)
 
-            ## "The value of continuation is given by substituting X into
-            ## the conditional expectation function"
-            continuation = pd.Series(np.polyval(p, X))
-            #print(continuation)
+                ## "The value of continuation is given by substituting X into
+                ## the conditional expectation function"
+                continuation = pd.Series(np.polyval(p, X))
+                #print(continuation)
+
+            else:
+                ## What to do when there are no enough data to fit
+                continuation = pd.Series(0, index=X.index)
 
             ## Paths that are early exercized
             mask = (exercise.loc[ITM] > continuation.loc[ITM])
@@ -114,8 +119,8 @@ if __name__ == "__main__":
 
     print(price)
     print(cashflows)
-    print(positive_exposure)
-    print(negative_exposure)
+    #print(positive_exposure)
+    #print(negative_exposure)
 
 ## Decision incluyendo PD a cada tiempo
 
