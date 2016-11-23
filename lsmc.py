@@ -115,7 +115,18 @@ if __name__ == "__main__":
           [1.00, 0.88, 1.22, 1.34]]
     mc = pd.DataFrame(mc)
 
-    price, cashflows, positive_exposure, negative_exposure = LSMC_american(mc)
+    price, \
+        cashflows, \
+        positive_exposure, \
+        negative_exposure = LSMC_american(mc, strike=1.10, option='put')
+
+    print(price)
+    print(cashflows)
+
+    price, \
+        cashflows, \
+        positive_exposure, \
+        negative_exposure = LSMC_american(mc, r=0.02, strike=.10, option='call')
 
     print(price)
     print(cashflows)
